@@ -13,3 +13,23 @@ window/stretch/mode="canvas_items"
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[preset.0]
+name="Windows Desktop"
+platform="Windows Desktop"
+runnable=true
+
+[preset.0.options]
+custom_template/debug=""
+custom_template/release=""
+binary_format/architecture="x86_64"
+application/icon=""
+application/console_wrapper_icon=""
+application/icon_interpolation=4
+application/modify_dpi=true
+application/dpi_mode=0
+application/embed_pck=true
+application/texture_format/bptc=false
+application/texture_format/s3tc=true
+application/texture_format/etc2=false
+application/texture_format/no_bptc_fallbacks=true
