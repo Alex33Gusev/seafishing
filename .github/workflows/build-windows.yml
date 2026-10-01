@@ -13,20 +13,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download Godot
+      - name: Install Godot 4.5.1
         shell: pwsh
         run: |
-          $version = "4.3.1"
-          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$version-stable/Godot_v$version-stable_win64.exe.zip" -OutFile godot.zip
+          $version = "4.5.1"
+          $base = "https://github.com/godotengine/godot/releases/download/$version-stable"
+          Invoke-WebRequest "$base/Godot_v$version-stable_win64.exe.zip" -OutFile godot.zip
           Expand-Archive godot.zip -DestinationPath godot
           $godot = Get-ChildItem godot -Filter "Godot_v*.exe" | Select-Object -First 1
           Copy-Item $godot.FullName godot.exe
-          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$version-stable/Godot_v$version-stable_export_templates.tpz" -OutFile templates.tpz
-          New-Item -ItemType Directory -Force "$env:APPDATA\Godot\export_templates\$version.stable" | Out-Null
-          tar -xf templates.tpz -C "$env:APPDATA\Godot\export_templates\$version.stable"
-          if (Test-Path "$env:APPDATA\Godot\export_templates\$version.stable\templates") { Move-Item "$env:APPDATA\Godot\export_templates\$version.stable\templates\*" "$env:APPDATA\Godot\export_templates\$version.stable\" -Force }
 
-      - name: Validate project
+          Invoke-WebRequest "$base/Godot_v$version-stable_export_templates.tpz" -OutFile templates.tpz
+          $templateDir = "$env:APPDATA\Godot\export_templates\$version.stable"
+          New-Item -ItemType Directory -Force $templateDir | Out-Null
+          tar -xf templates.tpz -C $templateDir
+          if (Test-Path "$templateDir\templates") {
+            Copy-Item "$templateDir\templates\*" $templateDir -Recurse -Force
+            Remove-Item "$templateDir\templates" -Recurse -Force
+          }
+
+      - name: Check project
         shell: pwsh
         run: .\godot.exe --headless --path . --editor --quit
 
@@ -36,11 +42,11 @@ jobs:
           New-Item -ItemType Directory -Force build | Out-Null
           .\godot.exe --headless --path . --export-release "Windows Desktop" "build\SeaFishing.exe"
 
-      - name: Package game
+      - name: Package Windows game
         shell: pwsh
         run: Compress-Archive -Path build\* -DestinationPath SeaFishing-Windows.zip -Force
 
-      - name: Upload EXE artifact
+      - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
           name: SeaFishing-Windows
