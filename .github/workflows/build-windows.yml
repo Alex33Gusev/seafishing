@@ -1,0 +1,48 @@
+name: Build Sea Fishing for Windows
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Godot
+        shell: pwsh
+        run: |
+          $version = "4.3.1"
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$version-stable/Godot_v$version-stable_win64.exe.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath godot
+          $godot = Get-ChildItem godot -Filter "Godot_v*.exe" | Select-Object -First 1
+          Copy-Item $godot.FullName godot.exe
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$version-stable/Godot_v$version-stable_export_templates.tpz" -OutFile templates.tpz
+          New-Item -ItemType Directory -Force "$env:APPDATA\Godot\export_templates\$version.stable" | Out-Null
+          tar -xf templates.tpz -C "$env:APPDATA\Godot\export_templates\$version.stable"
+          if (Test-Path "$env:APPDATA\Godot\export_templates\$version.stable\templates") { Move-Item "$env:APPDATA\Godot\export_templates\$version.stable\templates\*" "$env:APPDATA\Godot\export_templates\$version.stable\" -Force }
+
+      - name: Validate project
+        shell: pwsh
+        run: .\godot.exe --headless --path . --editor --quit
+
+      - name: Export Windows EXE
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build | Out-Null
+          .\godot.exe --headless --path . --export-release "Windows Desktop" "build\SeaFishing.exe"
+
+      - name: Package game
+        shell: pwsh
+        run: Compress-Archive -Path build\* -DestinationPath SeaFishing-Windows.zip -Force
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeaFishing-Windows
+          path: SeaFishing-Windows.zip
+          if-no-files-found: error
